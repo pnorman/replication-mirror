@@ -9,7 +9,7 @@ import errno
 
 import config
 
-VERBOSE = True
+VERBOSE = False
 
 def isoToTimestamp(isotime):
   t = datetime.strptime(isotime, "%Y-%m-%dT%H:%M:%SZ")
@@ -73,5 +73,12 @@ def minutelyUpdateRun():
     
 
 if __name__ == "__main__":
-    while minutelyUpdateRun():
-        pass
+    if os.path.isfile(os.path.realpath(os.path.dirname(sys.argv[0])) + '/download.lock'):
+        print 'Lockfile found'
+    else:
+        try:
+            with open(os.path.realpath(os.path.dirname(sys.argv[0])) + '/download.lock', 'w') as lockfile:
+                while minutelyUpdateRun():
+                    pass
+        finally:
+            os.remove(os.path.realpath(os.path.dirname(sys.argv[0])) + '/download.lock')
