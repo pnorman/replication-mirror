@@ -6,11 +6,14 @@ from datetime import datetime
 import time
 import os
 import errno
-
+import gzip
 import config
+import cStringIO as StringIO
+from lxml import etree
 
-VERBOSE = False
+VERBOSE = True
 
+    
 def isoToTimestamp(isotime):
   t = datetime.strptime(isotime, "%Y-%m-%dT%H:%M:%SZ")
   return time.mktime(t.timetuple())
@@ -47,7 +50,15 @@ def minutelyUpdateRun():
         
     try:
         # Read the upstream .osc.gz
-        uosc = urllib2.urlopen(url)
+        uosc = StringIO.StringIO(urllib2.urlopen(url).read())
+
+        # Try to decompress it, parse it and check the root tag. If any of these fail, bail out with an exception
+        if etree.parse(StringIO.StringIO(gzip.GzipFile(fileobj=uosc).read())).getroot().tag != 'osmChange':
+            raise lxml.etree.ParseError
+
+        #reset the file for later
+        uosc.seek(0)
+            
         with open(config.REPLICATE_DISK + '/{}/{}/{}.osc.gz'.format(sqnStr[0:3], sqnStr[3:6], sqnStr[6:9]), 'w') as losc:
             losc.write(uosc.read())
     except urllib2.HTTPError, e:
@@ -56,7 +67,7 @@ def minutelyUpdateRun():
         raise e
         
     url = config.REPLICATE_BASE + '%s/%s/%s.state.txt' % (sqnStr[0:3], sqnStr[3:6], sqnStr[6:9])
- 
+
     if VERBOSE:
         print "Downloading state file (%s)." % (url) 
     try:
