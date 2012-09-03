@@ -21,7 +21,7 @@ def minutelyUpdateRun():
     # Read the state.txt
     
     state = {}
-    with open(os.path.realpath(os.path.dirname(sys.argv[0])) + '/state.txt', 'r') as sf:
+    with open(config.REPLICATE_DISK + '/state.txt', 'r') as sf:
 
         for line in sf:
             if line[0] == '#':
@@ -37,7 +37,7 @@ def minutelyUpdateRun():
     url = config.REPLICATE_BASE + '%s/%s/%s.osc.gz' % (sqnStr[0:3], sqnStr[3:6], sqnStr[6:9])
 
     try:
-        os.makedirs(os.path.realpath(os.path.dirname(sys.argv[0])) + '/{}/{}'.format(sqnStr[0:3], sqnStr[3:6]))
+        os.makedirs(config.REPLICATE_DISK + '/{}/{}'.format(sqnStr[0:3], sqnStr[3:6]))
     except OSError, e:
         if e.errno != errno.EEXIST:
             raise
@@ -46,8 +46,9 @@ def minutelyUpdateRun():
         print "Downloading change file (%s)." % (url)
         
     try:
+        # Read the upstream .osc.gz
         uosc = urllib2.urlopen(url)
-        with open(os.path.realpath(os.path.dirname(sys.argv[0])) + '/{}/{}/{}.osc.gz'.format(sqnStr[0:3], sqnStr[3:6], sqnStr[6:9]), 'w') as losc:
+        with open(config.REPLICATE_DISK + '/{}/{}/{}.osc.gz'.format(sqnStr[0:3], sqnStr[3:6], sqnStr[6:9]), 'w') as losc:
             losc.write(uosc.read())
     except urllib2.HTTPError, e:
         if e.code == 404:
@@ -55,13 +56,15 @@ def minutelyUpdateRun():
         raise e
         
     url = config.REPLICATE_BASE + '%s/%s/%s.state.txt' % (sqnStr[0:3], sqnStr[3:6], sqnStr[6:9])
-    
+ 
+    if VERBOSE:
+        print "Downloading state file (%s)." % (url) 
     try:
         ustate = urllib2.urlopen(url)
         sstate = ustate.read()
-        with open(os.path.realpath(os.path.dirname(sys.argv[0])) + '/{}/{}/{}.state.txt'.format(sqnStr[0:3], sqnStr[3:6], sqnStr[6:9]), 'w') as lstate:
+        with open(config.REPLICATE_DISK + '/{}/{}/{}.state.txt'.format(sqnStr[0:3], sqnStr[3:6], sqnStr[6:9]), 'w') as lstate:
             lstate.write(sstate)
-        with open(os.path.realpath(os.path.dirname(sys.argv[0])) + '/state.txt'.format(sqnStr[0:3], sqnStr[3:6], sqnStr[6:9]), 'w') as lstate:
+        with open(config.REPLICATE_DISK + '/state.txt'.format(sqnStr[0:3], sqnStr[3:6], sqnStr[6:9]), 'w') as lstate:
             lstate.write(sstate)
     except urllib2.HTTPError, e:
         if e.code == 404:
@@ -73,12 +76,12 @@ def minutelyUpdateRun():
     
 
 if __name__ == "__main__":
-    if os.path.isfile(os.path.realpath(os.path.dirname(sys.argv[0])) + '/download.lock'):
+    if os.path.isfile(config.REPLICATE_DISK + '/download.lock'):
         print 'Lockfile found'
     else:
         try:
-            with open(os.path.realpath(os.path.dirname(sys.argv[0])) + '/download.lock', 'w') as lockfile:
+            with open(config.REPLICATE_DISK + '/download.lock', 'w') as lockfile:
                 while minutelyUpdateRun():
                     pass
         finally:
-            os.remove(os.path.realpath(os.path.dirname(sys.argv[0])) + '/download.lock')
+            os.remove(config.REPLICATE_DISK + '/download.lock')
